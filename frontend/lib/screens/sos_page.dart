@@ -106,33 +106,61 @@ class _SosPageState extends State<SosPage> {
     if (file != null) setState(() => pickedFile = file);
   }
 
-  // ---------------- Location ----------------
+  // ---------------- Location (Fast 2-step strategy for SOS) ----------------
   Future<void> _determinePosition() async {
     setState(() => locating = true);
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return;
+      if (!serviceEnabled) {
+        debugPrint('Location services disabled.');
+        return;
+      }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) return;
       }
-
       if (permission == LocationPermission.deniedForever) return;
 
-      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
-      setState(() => currentPosition = pos);
+      // STEP 1: Instantly use the last known position (cached — zero wait time)
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null && mounted) {
+        setState(() {
+          currentPosition = lastKnown;
+          locating = false; // show location immediately
+        });
+      }
+
+      // STEP 2: Silently get a fresh accurate position in the background
+      // Uses 'low' accuracy first which is much faster than 'best'
+      final fresh = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 5),
+      );
+      if (mounted) {
+        setState(() => currentPosition = fresh);
+      }
     } catch (e) {
       debugPrint('Location error: $e');
+      // Still might have lastKnown — that's OK
     } finally {
-      setState(() => locating = false);
+      if (mounted) setState(() => locating = false);
     }
   }
 
   // ---------------- Send SOS ----------------
   Future<void> _sendSos() async {
-    if (selectedEmergency == null) return;
+    if (selectedEmergency == null) {
+      _showSnackBar('Please select an emergency type');
+      return;
+    }
+
+    // If still locating and no position yet, try one quick attempt
+    if (currentPosition == null && locating) {
+      _showSnackBar('Getting your location... please wait a second', success: true);
+      await Future.delayed(const Duration(seconds: 2));
+    }
 
     setState(() => sending = true);
     try {
@@ -146,7 +174,12 @@ class _SosPageState extends State<SosPage> {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         _resetForm();
-        _showSnackBar('SOS Sent Successfully', success: true);
+        _showSnackBar(
+          currentPosition != null
+              ? 'SOS Sent with your location ✅'
+              : 'SOS Sent (location unavailable)',
+          success: true,
+        );
       } else {
         _showSnackBar('Failed to send SOS (${response.statusCode})');
       }
@@ -186,6 +219,55 @@ class _SosPageState extends State<SosPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+
+            // ----------- GPS Status Banner -----------
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: currentPosition != null
+                    ? Colors.green.shade50
+                    : (locating ? Colors.orange.shade50 : Colors.red.shade50),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: currentPosition != null
+                      ? Colors.green
+                      : (locating ? Colors.orange : Colors.red),
+                ),
+              ),
+              child: Row(
+                children: [
+                  if (locating && currentPosition == null)
+                    const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.orange),
+                    )
+                  else
+                    Icon(
+                      currentPosition != null ? Icons.location_on : Icons.location_off,
+                      size: 18,
+                      color: currentPosition != null ? Colors.green : Colors.red,
+                    ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      currentPosition != null
+                          ? 'Location captured: ${currentPosition!.latitude.toStringAsFixed(5)}, ${currentPosition!.longitude.toStringAsFixed(5)}'
+                          : (locating ? 'Getting your location...' : 'Location unavailable'),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: currentPosition != null
+                            ? Colors.green.shade800
+                            : (locating ? Colors.orange.shade800 : Colors.red.shade800),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             DropdownButton<String>(
               value: selectedEmergency,
               hint: const Text('Select emergency type'),
@@ -224,16 +306,27 @@ class _SosPageState extends State<SosPage> {
             if (pickedFile != null)
               Image.file(File(pickedFile!.path), height: 100, width: 100, fit: BoxFit.cover),
 
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: sending ? null : _sendSos,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+            const SizedBox(height: 20),
+
+            // ---------------- TRIGGER SOS Button ----------------
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: sending ? null : _sendSos,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: sending
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Icon(Icons.warning_rounded, size: 24),
+                label: Text(
+                  sending ? 'Sending...' : 'TRIGGER SOS',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
-              child: sending
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('TRIGGER SOS'),
             ),
           ],
         ),

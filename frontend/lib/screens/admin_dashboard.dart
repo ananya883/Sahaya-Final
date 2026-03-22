@@ -4,6 +4,10 @@ import 'package:http/http.dart' as http;
 import '../services/admin_session.dart';
 import 'admin_create_camp.dart';
 import 'admin_disaster_list.dart';
+import 'admin_volunteer_sos.dart';
+import 'admin_donation_reports.dart';
+import 'admin_public_notices.dart';
+import 'public_notices_page.dart';
 import 'role_selection.dart';
 import '../services/api_config.dart';
 
@@ -208,6 +212,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
           foregroundColor: Colors.white,
           actions: [
             IconButton(
+              icon: const Icon(Icons.notifications_active),
+              tooltip: "View Notices",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PublicNoticesPage()),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.campaign_outlined),
+              tooltip: "Broadcast Notice",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AdminPublicNotices()),
+                );
+              },
+            ),
+            IconButton(
               icon: const Icon(Icons.logout),
               onPressed: _logout,
               tooltip: "Logout",
@@ -251,6 +275,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       child: SingleChildScrollView(
         child: Column(
           children: [
+            // Disaster Management card
             Container(
               margin: const EdgeInsets.all(16),
               child: Card(
@@ -296,6 +321,129 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               SizedBox(height: 4),
                               Text(
                                 'Register and manage disasters',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Card(
+                elevation: 4,
+                color: Colors.green.shade50,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AdminVolunteerSos(),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.volunteer_activism,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Volunteer & SOS Management',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'View SOS requests and assigned volunteers',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Donation Reports card
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Card(
+                elevation: 4,
+                color: Colors.green.shade50,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AdminDonationReports(),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade600,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.bar_chart,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Donation Reports',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'View inventory & money donation details',
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 14,

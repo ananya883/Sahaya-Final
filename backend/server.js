@@ -13,6 +13,7 @@ import notificationRoutes from "./routes/notification.routes.js";
 import unknownRoutes from "./routes/unknown.routes.js";
 import campRoutes from "./routes/campRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import publicNoticeRoutes from "./routes/publicNoticeRoutes.js";
 import campManagerAuthRoutes from "./routes/campManagerAuthRoutes.js";
 import campManagerRoutes from "./routes/campManagerRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
@@ -20,6 +21,7 @@ import donorRoutes from "./routes/donorRoutes.js";
 import inmateRoutes from "./routes/inmateRoutes.js";
 import inventoryRoutes from "./routes/inventoryRoutes.js";
 import alertRoutes from "./routes/alertRoutes.js";
+import volunteerRoutes from "./routes/volunteerRoutes.js";
 
 dotenv.config();
 
@@ -62,6 +64,7 @@ app.use("/api/match", matchRoutes);
 
 // Notifications
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/public-notices", publicNoticeRoutes);
 
 // Camps
 app.use("/api/camps", campRoutes);
@@ -89,6 +92,8 @@ app.use("/api/inventory", inventoryRoutes);
 
 // Early Warning Alerts
 app.use("/api/alerts", alertRoutes);
+// Volunteer 
+app.use("/api/volunteer", volunteerRoutes);
 
 // ---------- DB & Server ----------
 const PORT = process.env.PORT || 5000;

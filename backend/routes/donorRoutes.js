@@ -10,7 +10,7 @@ const router = express.Router();
 // Donate items
 router.post("/donate-item", async (req, res) => {
   try {
-    const { requestId, donateQty } = req.body;
+    const { requestId, donateQty, donorName } = req.body;
 
     const request = await CampRequest.findById(requestId);
     if (!request || request.remainingQty <= 0) {
@@ -38,7 +38,7 @@ router.post("/donate-item", async (req, res) => {
 
     await DonationRecord.create({
       campId: request.campId,
-      donorName: "Ananya", // Hardcoded for demo, or pass from req.body
+      donorName: donorName || "Anonymous",
       itemName: request.itemName,
       quantity: donateQty,
       unit: request.unit || "units",

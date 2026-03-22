@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'homepage.dart';
 import 'volunteer_home.dart';
+import 'upgrade_to_volunteer.dart';
 import 'volunteer_register.dart';
 import 'donor_dashboard.dart';
 import 'registration.dart';
@@ -71,11 +72,19 @@ class _LoginPageState extends State<LoginPage> {
             context,
             MaterialPageRoute(builder: (context) => DonorDashboard()),
           );
-        } else if (widget.targetRole == 'volunteer' && roles.contains('volunteer')) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const VolunteerHome()),
-          );
+        } else if (widget.targetRole == 'volunteer') {
+          if (roles.contains('volunteer')) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const VolunteerHome()),
+            );
+          } else {
+            // Need to upgrade existing user to volunteer
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const UpgradeToVolunteer()),
+            );
+          }
         } else {
           // Default to HomePage for 'user' targetRole OR if no role match
           Navigator.pushReplacement(

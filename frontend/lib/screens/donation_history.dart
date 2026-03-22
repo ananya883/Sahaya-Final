@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import 'package:intl/intl.dart';
+import 'package:excel/excel.dart' hide Border;
+import 'package:file_saver/file_saver.dart';
+import 'dart:typed_data';
 
 const Color primaryColor = Color(0xFF1E88E5);
-const double headerHeight = 150;
+const double headerHeight = 200;
 
 class CustomHeaderClipper extends CustomClipper<Path> {
   @override
@@ -38,6 +41,8 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> with SingleTi
   
   bool _isLoading = true;
   String? _errorMessage;
+  String _searchQuery = "";
+  DateTimeRange? _selectedDateRange;
 
   List<dynamic> _moneyDonations = [];
   List<dynamic> _itemDonations = [];
@@ -89,6 +94,232 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> with SingleTi
     }
   }
 
+  List<dynamic> get _filteredMoneyDonations {
+    List<dynamic> filtered = _moneyDonations;
+    
+    if (_selectedDateRange != null) {
+      filtered = filtered.where((item) {
+        try {
+          final dateStr = item['date']?.toString();
+          if (dateStr == null) return false;
+          final date = DateTime.parse(dateStr).toLocal();
+          final itemDate = DateTime(date.year, date.month, date.day);
+          final start = DateTime(_selectedDateRange!.start.year, _selectedDateRange!.start.month, _selectedDateRange!.start.day);
+          final end = DateTime(_selectedDateRange!.end.year, _selectedDateRange!.end.month, _selectedDateRange!.end.day);
+          return itemDate.compareTo(start) >= 0 && itemDate.compareTo(end) <= 0;
+        } catch (e) {
+          debugPrint('Error filtering money donation date: $e');
+          return false;
+        }
+      }).toList();
+    }
+
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((item) {
+        final amount = item['amount']?.toString().toLowerCase() ?? '';
+        final campId = item['campId']?.toString().toLowerCase() ?? '';
+        final status = item['status']?.toString().toLowerCase() ?? '';
+        final dateStr = _formatDate(item['date']).toLowerCase();
+        return amount.contains(_searchQuery) ||
+            campId.contains(_searchQuery) ||
+            status.contains(_searchQuery) ||
+            dateStr.contains(_searchQuery);
+      }).toList();
+    }
+    return filtered;
+  }
+
+  List<dynamic> get _filteredItemDonations {
+    List<dynamic> filtered = _itemDonations;
+
+    if (_selectedDateRange != null) {
+      filtered = filtered.where((item) {
+        try {
+          final dateStr = item['date']?.toString();
+          if (dateStr == null) return false;
+          final date = DateTime.parse(dateStr).toLocal();
+          final itemDate = DateTime(date.year, date.month, date.day);
+          final start = DateTime(_selectedDateRange!.start.year, _selectedDateRange!.start.month, _selectedDateRange!.start.day);
+          final end = DateTime(_selectedDateRange!.end.year, _selectedDateRange!.end.month, _selectedDateRange!.end.day);
+          return itemDate.compareTo(start) >= 0 && itemDate.compareTo(end) <= 0;
+        } catch (e) {
+          debugPrint('Error filtering item donation date: $e');
+          return false;
+        }
+      }).toList();
+    }
+
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((item) {
+        final itemName = item['itemName']?.toString().toLowerCase() ?? '';
+        final campId = item['campId']?.toString().toLowerCase() ?? '';
+        final status = item['status']?.toString().toLowerCase() ?? '';
+        final dateStr = _formatDate(item['date']).toLowerCase();
+        return itemName.contains(_searchQuery) ||
+            campId.contains(_searchQuery) ||
+            status.contains(_searchQuery) ||
+            dateStr.contains(_searchQuery);
+      }).toList();
+    }
+    return filtered;
+  }
+
+  Future<void> _exportToExcel() async {
+    try {
+      var excel = Excel.createExcel();
+      
+      if (_tabController.index == 0) {
+        // Export Money Donations
+        excel.rename('Sheet1', 'Money Donations');
+        Sheet sheet = excel['Money Donations'];
+        
+        sheet.appendRow([
+          TextCellValue('Date'),
+          TextCellValue('Amount (INR)'),
+          TextCellValue('Status'),
+          TextCellValue('Camp ID'),
+        ]);
+        for (var item in _filteredMoneyDonations) {
+          sheet.appendRow([
+            TextCellValue(_formatDate(item['date'])),
+            TextCellValue(item['amount']?.toString() ?? ''),
+            TextCellValue(item['status']?.toString() ?? ''),
+            TextCellValue(item['campId']?.toString() ?? 'General'),
+          ]);
+        }
+      } else {
+        // Export Item Donations
+        excel.rename('Sheet1', 'Item Donations');
+        Sheet sheet = excel['Item Donations'];
+        
+        sheet.appendRow([
+          TextCellValue('Date'),
+          TextCellValue('Item Name'),
+          TextCellValue('Quantity'),
+          TextCellValue('Unit'),
+          TextCellValue('Status'),
+          TextCellValue('Camp ID'),
+          TextCellValue('Received At'),
+        ]);
+        for (var item in _filteredItemDonations) {
+          sheet.appendRow([
+            TextCellValue(_formatDate(item['date'])),
+            TextCellValue(item['itemName']?.toString() ?? ''),
+            TextCellValue(item['quantity']?.toString() ?? ''),
+            TextCellValue(item['unit']?.toString() ?? ''),
+            TextCellValue(item['status']?.toString() ?? ''),
+            TextCellValue(item['campId']?.toString() ?? 'Unknown'),
+            TextCellValue(item['receivedAt'] != null ? _formatDate(item['receivedAt']) : ''),
+          ]);
+        }
+      }
+
+      var fileBytes = excel.save();
+      
+      if (fileBytes != null) {
+        String fileName = 'Donation_Report_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+        await FileSaver.instance.saveFile(
+          name: fileName,
+          bytes: Uint8List.fromList(fileBytes),
+          mimeType: MimeType.microsoftExcel,
+        );
+        
+        if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Excel Report Downloaded successfully')),
+            );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text('Failed to generate Excel: $e')),
+        );
+      }
+    }
+  }
+
+  void _showExportPreview() {
+    final bool isMoneyTab = _tabController.index == 0;
+    final List<dynamic> dataToExport = isMoneyTab ? _filteredMoneyDonations : _filteredItemDonations;
+
+    if (dataToExport.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No data available to export.')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(isMoneyTab ? 'Preview Money Donations' : 'Preview Item Donations'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columns: isMoneyTab
+                      ? const [
+                          DataColumn(label: Text('Date')),
+                          DataColumn(label: Text('Amount (INR)')),
+                          DataColumn(label: Text('Status')),
+                          DataColumn(label: Text('Camp ID')),
+                        ]
+                      : const [
+                          DataColumn(label: Text('Date')),
+                          DataColumn(label: Text('Item Name')),
+                          DataColumn(label: Text('Quantity')),
+                          DataColumn(label: Text('Unit')),
+                          DataColumn(label: Text('Status')),
+                          DataColumn(label: Text('Camp ID')),
+                          DataColumn(label: Text('Received At')),
+                        ],
+                  rows: dataToExport.map((item) {
+                    if (isMoneyTab) {
+                      return DataRow(cells: [
+                        DataCell(Text(_formatDate(item['date']))),
+                        DataCell(Text(item['amount']?.toString() ?? '')),
+                        DataCell(Text(item['status']?.toString() ?? '')),
+                        DataCell(Text(item['campId']?.toString() ?? 'General')),
+                      ]);
+                    } else {
+                      return DataRow(cells: [
+                        DataCell(Text(_formatDate(item['date']))),
+                        DataCell(Text(item['itemName']?.toString() ?? '')),
+                        DataCell(Text(item['quantity']?.toString() ?? '')),
+                        DataCell(Text(item['unit']?.toString() ?? '')),
+                        DataCell(Text(item['status']?.toString() ?? '')),
+                        DataCell(Text(item['campId']?.toString() ?? 'Unknown')),
+                        DataCell(Text(item['receivedAt'] != null ? _formatDate(item['receivedAt']) : '')),
+                      ]);
+                    }
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _exportToExcel();
+              },
+              child: const Text('Download Excel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildHeader() {
     return ClipPath(
       clipper: CustomHeaderClipper(),
@@ -96,23 +327,110 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> with SingleTi
         height: headerHeight,
         color: primaryColor,
         alignment: Alignment.center,
-        padding: const EdgeInsets.only(top: 40),
+        padding: const EdgeInsets.only(top: 40, left: 16, right: 16),
         child: Column(
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Text(
+                      "My Donations",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                const Text(
-                  "My Donations",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                IconButton(
+                  icon: const Icon(Icons.download, color: Colors.white),
+                  tooltip: 'Download Report',
+                  onPressed: _showExportPreview,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (_selectedDateRange != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.date_range, size: 16, color: primaryColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${DateFormat('MMM d, yyyy').format(_selectedDateRange!.start)} - ${DateFormat('MMM d, yyyy').format(_selectedDateRange!.end)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: primaryColor),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () => setState(() => _selectedDateRange = null),
+                      child: const Icon(Icons.cancel, size: 20, color: Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 45,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22.5),
+                    ),
+                    child: TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value.toLowerCase();
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        hintText: "Search by camp, item, amount, status...",
+                        prefixIcon: Icon(Icons.search, color: Colors.grey),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      _selectedDateRange == null ? Icons.date_range : Icons.edit_calendar,
+                      color: _selectedDateRange == null ? primaryColor : Colors.green,
+                    ),
+                    tooltip: 'Filter by Date Range',
+                    onPressed: () async {
+                      final picked = await showDateRangePicker(
+                        context: context,
+                        initialDateRange: _selectedDateRange,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) {
+                        setState(() => _selectedDateRange = picked);
+                      }
+                    },
+                  ),
+                )
               ],
             ),
           ],
@@ -175,15 +493,16 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> with SingleTi
   }
 
   Widget _buildMoneyList() {
-    if (_moneyDonations.isEmpty) {
-      return const Center(child: Text("No monetary donations yet.", style: TextStyle(color: Colors.grey)));
+    final filteredList = _filteredMoneyDonations;
+    if (filteredList.isEmpty) {
+      return const Center(child: Text("No matching monetary donations.", style: TextStyle(color: Colors.grey)));
     }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _moneyDonations.length,
+      itemCount: filteredList.length,
       itemBuilder: (context, index) {
-        final item = _moneyDonations[index];
+        final item = filteredList[index];
         final isSuccess = item['status'] == 'SUCCESS';
 
         return Card(
@@ -229,15 +548,16 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> with SingleTi
   }
 
   Widget _buildItemsList() {
-    if (_itemDonations.isEmpty) {
-      return const Center(child: Text("No item donations yet.", style: TextStyle(color: Colors.grey)));
+    final filteredList = _filteredItemDonations;
+    if (filteredList.isEmpty) {
+      return const Center(child: Text("No matching item donations.", style: TextStyle(color: Colors.grey)));
     }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _itemDonations.length,
+      itemCount: filteredList.length,
       itemBuilder: (context, index) {
-        final item = _itemDonations[index];
+        final item = filteredList[index];
         final isReceived = item['status'] == 'Received';
 
         return Card(

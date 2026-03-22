@@ -5,6 +5,7 @@ import 'donations_screen.dart';
 import 'inmate_screen.dart';
 import '../services/camp_session.dart';
 import 'camp_manager_login.dart';
+import 'public_notices_page.dart';
 
 class CampDashboard extends StatefulWidget {
   const CampDashboard({super.key});
@@ -45,6 +46,13 @@ class _CampDashboardState extends State<CampDashboard> {
         title: Text(_campName),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active),
+            tooltip: "Public Notices",
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const PublicNoticesPage()));
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _logout,

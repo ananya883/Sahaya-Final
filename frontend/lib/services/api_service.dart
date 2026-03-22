@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api_config.dart';
 import 'package:path/path.dart';
 
@@ -164,25 +165,29 @@ class ApiService {
     String? longitude,
     XFile? imageFile,
   }) async {
-    final url = Uri.parse("${ApiConfig.baseUrl}/api/sos/trigger");
+    final url = Uri.parse("${ApiConfig.baseUrl}/api/sos/");
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
     
     if (imageFile == null) {
       return await http.post(
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "emergencyType": emergencyType,
-          "disasterType": disasterType,
+          "emergency_type": emergencyType,
+          "disaster_type": disasterType,
           "latitude": latitude,
           "longitude": longitude,
+          "userId": userId,
         }),
       );
     } else {
       final request = http.MultipartRequest("POST", url);
-      request.fields["emergencyType"] = emergencyType;
-      request.fields["disasterType"] = disasterType;
-      if (latitude != null) request.fields["latitude"] = latitude;
+      request.fields["emergency_type"] = emergencyType;
+      request.fields["disaster_type"]  = disasterType;
+      if (latitude  != null) request.fields["latitude"]  = latitude;
       if (longitude != null) request.fields["longitude"] = longitude;
+      if (userId    != null) request.fields["userId"]    = userId;
 
       request.files.add(await http.MultipartFile.fromPath(
         "image",
@@ -211,7 +216,7 @@ class ApiService {
   }
 
   // ---------------- DONATE ITEM ----------------
-  static Future<void> donateItem(String requestId, int qty) async {
+  static Future<void> donateItem(String requestId, int qty, String donorName) async {
     try {
       final response = await http.post(
         Uri.parse("${ApiConfig.baseUrl}/api/donor/donate-item"),
@@ -219,6 +224,7 @@ class ApiService {
         body: jsonEncode({
           "requestId": requestId,
           "donateQty": qty,
+          "donorName": donorName,
         }),
       );
       if (response.statusCode != 200) {
@@ -262,6 +268,24 @@ class ApiService {
     );
   }
 
+  // ---------------- UPGRADE TO VOLUNTEER ----------------
+  static Future<http.Response> upgradeToVolunteer({
+    required String userId,
+    required List<String> skills,
+    required String serviceLocation,
+  }) async {
+    final url = Uri.parse(ApiConfig.volunteerUpgrade);
+    return await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "userId": userId,
+        "skills": skills,
+        "serviceLocation": serviceLocation,
+      }),
+    );
+  }
+
   // ---------------- RAZORPAY ----------------
   static Future<http.Response> createRazorpayOrder(String amount) async {
     final url = Uri.parse(ApiConfig.createRazorpayOrder);
@@ -295,6 +319,21 @@ class ApiService {
     );
   }
 
+  // ---------------- VOLUNTEER SOS ----------------
+  static Future<List<dynamic>> getVolunteerSos() async {
+    try {
+      final response = await http.get(Uri.parse(ApiConfig.volunteerSos))
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception("Failed to load volunteer SOS requests");
+      }
+    } catch (e) {
+      throw Exception("Server error: $e");
+    }
+  }
+
   // ---------------- DONOR HISTORY ----------------
   static Future<Map<String, dynamic>> getDonationHistory(String donorId, String donorName) async {
     try {
@@ -308,5 +347,38 @@ class ApiService {
     } catch (e) {
       throw Exception("Server error: $e");
     }
+  }
+
+  static Future<http.Response> acceptSos(String sosId, String volunteerId) async {
+    final url = Uri.parse(ApiConfig.volunteerAcceptSos(sosId));
+    return await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({ "volunteerId": volunteerId }),
+    );
+  }
+
+  static Future<http.Response> resolveSos(String sosId) async {
+    final url = Uri.parse(ApiConfig.volunteerResolveSos(sosId));
+    return await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+    );
+  }
+
+  static Future<http.Response> adminExpireSos(String sosId) async {
+    final url = Uri.parse(ApiConfig.adminExpireSos(sosId));
+    return await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+    );
+  }
+
+  static Future<http.Response> adminUnexpireSos(String sosId) async {
+    final url = Uri.parse(ApiConfig.adminUnexpireSos(sosId));
+    return await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+    );
   }
 }
