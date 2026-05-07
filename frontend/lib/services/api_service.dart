@@ -358,12 +358,25 @@ class ApiService {
     );
   }
 
-  static Future<http.Response> resolveSos(String sosId) async {
+  static Future<http.Response> resolveSos(String sosId, {File? actionImage}) async {
     final url = Uri.parse(ApiConfig.volunteerResolveSos(sosId));
-    return await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-    );
+    
+    if (actionImage == null) {
+      return await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+      );
+    } else {
+      final request = http.MultipartRequest("POST", url);
+      request.files.add(await http.MultipartFile.fromPath(
+        "actionImage",
+        actionImage.path,
+        filename: basename(actionImage.path),
+      ));
+      
+      final streamedResponse = await request.send();
+      return await http.Response.fromStream(streamedResponse);
+    }
   }
 
   static Future<http.Response> adminExpireSos(String sosId) async {

@@ -3,8 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'login.dart';
 import 'volunteer_profile.dart';
+import 'public_notices_page.dart';
 import '../services/api_service.dart';
 
 class VolunteerHome extends StatefulWidget {
@@ -72,13 +75,54 @@ class _VolunteerHomeState extends State<VolunteerHome> {
   }
 
   Future<void> _resolveSos(String sosId) async {
+    // Prompt the user if they want to upload evidence
+    final bool? attachEvidence = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Resolve SOS"),
+        content: const Text("Would you like to attach a photo showing the resolution of this emergency?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("No, just resolve"),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.camera_alt, size: 18),
+            label: const Text("Attach Photo"),
+          ),
+        ],
+      )
+    );
+
+    if (attachEvidence == null) return; // User cancelled
+
+    File? evidenceImage;
+    if (attachEvidence) {
+      final picker = ImagePicker();
+      final XFile? pickedMode = await picker.pickImage(source: ImageSource.camera);
+      if (pickedMode == null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No image selected")));
+        return; // User cancelled the camera
+      }
+      if (pickedMode != null) {
+        evidenceImage = File(pickedMode.path);
+      }
+    }
+
+    setState(() => _isLoading = true);
     try {
-      final res = await ApiService.resolveSos(sosId);
+      final res = await ApiService.resolveSos(sosId, actionImage: evidenceImage);
       if (res.statusCode >= 200 && res.statusCode < 300) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Resolved successfully!", style: TextStyle(color: Colors.white)), backgroundColor: Colors.green));
         _loadData();
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to resolve.", style: TextStyle(color: Colors.white)), backgroundColor: Colors.red));
       }
     } catch (e) {
       debugPrint("Resolve error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -166,6 +210,13 @@ class _VolunteerHomeState extends State<VolunteerHome> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active),
+            tooltip: "Public Notices",
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const PublicNoticesPage()));
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.person),
             tooltip: "Profile",

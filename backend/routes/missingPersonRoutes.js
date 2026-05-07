@@ -10,6 +10,7 @@ import MissingPerson from "../models/MissingPerson.js";
 import UnknownPerson from "../models/UnknownPerson.js";
 import Match from "../models/Match.js";
 import Notification from "../models/Notification.js";
+import CampManager from "../models/CampManager.js";
 
 const router = express.Router();
 
@@ -108,12 +109,23 @@ router.post("/register", upload.single("photo"), async (req, res) => {
 // Async function for background matching
 async function runMatchingInBackground(person, embedding) {
   try {
+    console.log("🔍 Background matching started for missing person:", person._id.toString());
+    if (!embedding || !Array.isArray(embedding)) {
+      console.log("⚠️ Person embedding is invalid or missing, skipping matching");
+      return;
+    }
+    
     const unknownPeople = await UnknownPerson.find({
       status: { $in: ["active", "unknown"] },
     });
 
+    console.log("📊 Found", unknownPeople.length, "unknown people to match against");
+
     for (const unknown of unknownPeople) {
-      if (!unknown.faceEmbedding) continue;
+      if (!unknown.faceEmbedding) {
+        console.log("  ⚠️ Unknown person", unknown._id.toString(), "has no embedding, skipping");
+        continue;
+      }
 
       const matchRes = await axios.post(
         `${AI_BASE_URL}/match`,
@@ -125,8 +137,11 @@ async function runMatchingInBackground(person, embedding) {
       );
 
       const similarity = matchRes.data.similarity;
+      console.log(`  📈 Match score with ${unknown._id.toString()}: ${(similarity * 100).toFixed(2)}%`);
 
       if (similarity >= MATCH_THRESHOLD) {
+        console.log(`  ✅ MATCH FOUND! Score ${(similarity * 100).toFixed(2)}% >= ${MATCH_THRESHOLD * 100}%`);
+
         // Determine confidence level
         let confidence = "low";
         if (similarity >= 0.95) confidence = "high";
@@ -142,13 +157,53 @@ async function runMatchingInBackground(person, embedding) {
         });
 
         // Notify missing person reporter
+        if (person.registeredBy) {
+          console.log("📬 Creating notification for missing person reporter:", person.registeredBy.toString());
+          await Notification.create({
+            userId: person.registeredBy,
+            targetRole: "user",
+            type: "match",
+            title: "Possible Match Found",
+            message: `A person possibly matching ${person.name} was found (${(similarity * 100).toFixed(2)}% similarity). Please verify.`,
+            relatedMissingPerson: person._id,
+            relatedUnknownPerson: unknown._id,
+            relatedMatch: matchRecord._id,
+          });
+          console.log("✅ Notification created for user:", person.registeredBy.toString());
+        } else {
+          console.warn("⚠️ Missing person has no registeredBy ID");
+        }
+
+        // Notify unknown person reporter (Camp Manager)
+        if (unknown.reportedBy) {
+          console.log("📬 Unknown.reportedBy exists:", unknown.reportedBy.toString());
+          const campManager = await CampManager.findById(unknown.reportedBy);
+          if (campManager) {
+            console.log("📬 Found camp manager with campId:", campManager.campId);
+            await Notification.create({
+              targetRole: "camp_manager",
+              targetCampId: campManager.campId,
+              type: "match",
+              title: "Match Found for Unknown Person",
+              message: `The unknown person you reported matches ${person.name} (${(similarity * 100).toFixed(2)}% similarity). Please verify.`,
+              relatedMissingPerson: person._id,
+              relatedUnknownPerson: unknown._id,
+              relatedMatch: matchRecord._id,
+            });
+            console.log("✅ Notification created for camp manager:", campManager.campId);
+          } else {
+            console.warn("⚠️ Camp manager not found for reportedBy ID:", unknown.reportedBy.toString());
+          }
+        } else {
+          console.warn("⚠️ Unknown person has no reportedBy ID");
+        }
+
+        // Notify Admin
         await Notification.create({
-          userId: person.registeredBy,
+          targetRole: "admin",
           type: "match",
-          title: "Possible Match Found",
-          message: `A person possibly matching ${person.name} was found (${(
-            similarity * 100
-          ).toFixed(2)}% similarity). Please verify.`,
+          title: "System: Match Found",
+          message: `A match was found between ${person.name} and an unknown person (${(similarity * 100).toFixed(2)}% similarity).`,
           relatedMissingPerson: person._id,
           relatedUnknownPerson: unknown._id,
           relatedMatch: matchRecord._id,

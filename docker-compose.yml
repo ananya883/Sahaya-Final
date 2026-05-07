@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sahaya-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+
+  ai_service:
+    build:
+      context: ./ai_service
+      dockerfile: Dockerfile
+    container_name: sahaya-ai
+    ports:
+      - "5002:5002"
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sahaya-frontend
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    depends_on:
+      - backend

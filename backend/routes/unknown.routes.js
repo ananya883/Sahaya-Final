@@ -9,6 +9,7 @@ import MissingPerson from "../models/MissingPerson.js";
 import UnknownPerson from "../models/UnknownPerson.js";
 import Match from "../models/Match.js";
 import Notification from "../models/Notification.js";
+import CampManager from "../models/CampManager.js";
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ router.post("/upload", upload.single("photo"), async (req, res) => {
     console.log("🧍 Unknown person upload hit");
 
     const {
-      reportedBy,
+      campId,
       gender,
       age,
       height,
@@ -42,8 +43,13 @@ router.post("/upload", upload.single("photo"), async (req, res) => {
       foundDate,
     } = req.body;
 
-    if (!reportedBy) {
-      return res.status(400).json({ message: "reportedBy is required" });
+    if (!campId) {
+      return res.status(400).json({ message: "campId is required" });
+    }
+
+    const campManager = await CampManager.findOne({ campId });
+    if (!campManager) {
+      return res.status(404).json({ message: "Camp manager not found" });
     }
 
     if (!req.file) {
@@ -81,7 +87,7 @@ router.post("/upload", upload.single("photo"), async (req, res) => {
     const unknown = await UnknownPerson.create({
       imagePath: req.file.path,
       faceEmbedding: embedding,
-      reportedBy,
+      reportedBy: campManager._id,
       status: "unknown",
       gender,
       age: age ? Number(age) : undefined,
@@ -115,12 +121,23 @@ router.post("/upload", upload.single("photo"), async (req, res) => {
 // Async function for background matching
 async function runMatchingInBackground(unknown, embedding) {
   try {
+    console.log("🔍 Background matching started for unknown person:", unknown._id.toString());
+    if (!embedding || !Array.isArray(embedding)) {
+      console.log("⚠️ Unknown embedding is invalid or missing, skipping matching");
+      return;
+    }
+    
     const missingPeople = await MissingPerson.find({
       status: { $in: ["missing", "active"] },
     });
 
+    console.log("📊 Found", missingPeople.length, "missing people to match against");
+
     for (const person of missingPeople) {
-      if (!person.faceEmbedding) continue;
+      if (!person.faceEmbedding) {
+        console.log("  ⚠️ Missing person", person._id.toString(), "has no embedding, skipping");
+        continue;
+      }
 
       const matchRes = await axios.post(
         `${AI_BASE_URL}/match`,
@@ -132,8 +149,10 @@ async function runMatchingInBackground(unknown, embedding) {
       );
 
       const similarity = matchRes.data.similarity;
+      console.log(`  📈 Match score with ${person._id.toString()}: ${(similarity * 100).toFixed(2)}%`);
 
       if (similarity >= MATCH_THRESHOLD) {
+        console.log(`  ✅ MATCH FOUND! Score ${(similarity * 100).toFixed(2)}% >= ${MATCH_THRESHOLD * 100}%`);
         // Determine confidence level
         let confidence = "low";
         if (similarity >= 0.95) confidence = "high";
@@ -162,33 +181,56 @@ async function runMatchingInBackground(unknown, embedding) {
 
         // Notify missing person reporter (show unknown person reporter's contact)
         if (person.registeredBy) {
+          console.log("📬 Creating notification for missing person reporter:", person.registeredBy.toString());
           await Notification.create({
             userId: person.registeredBy,
+            targetRole: "user",
             type: "match",
             title: "Possible Match Found",
-            message: `A person matching ${person.name} was found (${(
-              similarity * 100
-            ).toFixed(2)}% similarity). Please verify.`,
+            message: `A person matching ${person.name} was found (${(similarity * 100).toFixed(2)}% similarity). Please verify.`,
             relatedMissingPerson: person._id,
             relatedUnknownPerson: unknown._id,
             relatedMatch: matchRecord._id,
           });
+          console.log("✅ Notification created for user:", person.registeredBy.toString());
+        } else {
+          console.warn("⚠️ Missing person has no registeredBy ID");
         }
 
-        // Notify unknown person reporter (show missing person reporter's contact)
+        // Notify unknown person reporter (Camp Manager)
         if (unknown.reportedBy) {
-          await Notification.create({
-            userId: unknown.reportedBy,
-            type: "match",
-            title: "Match Found for Unknown Person",
-            message: `The unknown person you reported matches ${person.name} (${(
-              similarity * 100
-            ).toFixed(2)}% similarity). Please verify.`,
-            relatedMissingPerson: person._id,
-            relatedUnknownPerson: unknown._id,
-            relatedMatch: matchRecord._id,
-          });
+          console.log("📬 Unknown.reportedBy exists:", unknown.reportedBy.toString());
+          const campManager = await CampManager.findById(unknown.reportedBy);
+          if (campManager) {
+            console.log("📬 Found camp manager with campId:", campManager.campId);
+            await Notification.create({
+              targetRole: "camp_manager",
+              targetCampId: campManager.campId,
+              type: "match",
+              title: "Match Found for Unknown Person",
+              message: `The unknown person you reported matches ${person.name} (${(similarity * 100).toFixed(2)}% similarity). Please verify.`,
+              relatedMissingPerson: person._id,
+              relatedUnknownPerson: unknown._id,
+              relatedMatch: matchRecord._id,
+            });
+            console.log("✅ Notification created for camp manager:", campManager.campId);
+          } else {
+            console.warn("⚠️ Camp manager not found for reportedBy ID:", unknown.reportedBy.toString());
+          }
+        } else {
+          console.warn("⚠️ Unknown person has no reportedBy ID");
         }
+
+        // Notify Admin
+        await Notification.create({
+          targetRole: "admin",
+          type: "match",
+          title: "System: Match Found",
+          message: `A match was found between ${person.name} and an unknown person (${(similarity * 100).toFixed(2)}% similarity).`,
+          relatedMissingPerson: person._id,
+          relatedUnknownPerson: unknown._id,
+          relatedMatch: matchRecord._id,
+        });
       }
     }
   } catch (error) {

@@ -86,8 +86,10 @@ router.get("/my-alerts", async (req, res) => {
     }
 
     // Call Flask AI Service
-    // Flask app is running on port 5002
-    const flaskResponse = await fetch("http://127.0.0.1:5002/predict-alerts", {
+    // Use env variable or fallback to localhost (if running without Docker)
+    const AI_URL = process.env.AI_SERVICE_URL || "http://127.0.0.1:5002";
+    
+    const flaskResponse = await fetch(`${AI_URL}/predict-alerts`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

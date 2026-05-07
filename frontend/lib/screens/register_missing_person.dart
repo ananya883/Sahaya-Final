@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,7 +22,7 @@ class _RegisterMissingPersonState extends State<RegisterMissingPerson> {
   final lastSeenLocationCtrl = TextEditingController();
 
   DateTime? lastSeenDate;
-  File? image;
+  XFile? image;
   bool loading = false;
 
   final Color primaryBlue = Colors.blueAccent;
@@ -31,7 +30,7 @@ class _RegisterMissingPersonState extends State<RegisterMissingPerson> {
   Future<void> pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
-      setState(() => image = File(picked.path));
+      setState(() => image = picked);
     }
   }
 
@@ -69,24 +68,52 @@ class _RegisterMissingPersonState extends State<RegisterMissingPerson> {
 
     setState(() => loading = true);
 
-    await MissingPersonService.registerMissingPerson(
-      name: nameCtrl.text,
-      age: ageCtrl.text,
-      gender: genderCtrl.text,
-      height: heightCtrl.text,
-      weight: weightCtrl.text,
-      birthmark: birthmarkCtrl.text,
-      lastSeenLocation: lastSeenLocationCtrl.text,
-      lastSeenDate: lastSeenDate!.toIso8601String(),
-      image: image!,
-      registeredBy: userId,
-    );
+    try {
+      await MissingPersonService.registerMissingPerson(
+        name: nameCtrl.text,
+        age: ageCtrl.text,
+        gender: genderCtrl.text,
+        height: heightCtrl.text,
+        weight: weightCtrl.text,
+        birthmark: birthmarkCtrl.text,
+        lastSeenLocation: lastSeenLocationCtrl.text,
+        lastSeenDate: lastSeenDate!.toIso8601String(),
+        image: image!,
+        registeredBy: userId,
+      );
 
-    setState(() => loading = false);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Missing person registered successfully")),
-    );
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Missing person registered successfully")),
+      );
+      
+      // Clear form and navigate back
+      nameCtrl.clear();
+      ageCtrl.clear();
+      genderCtrl.clear();
+      heightCtrl.clear();
+      weightCtrl.clear();
+      birthmarkCtrl.clear();
+      lastSeenLocationCtrl.clear();
+      
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) Navigator.pop(context, true);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => loading = false);
+      }
+    }
   }
 
   @override

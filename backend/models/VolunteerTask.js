@@ -5,7 +5,8 @@ const volunteerTaskSchema = new mongoose.Schema({
   volunteerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   status: { type: String, enum: ['pending', 'in progress', 'resolved'], default: 'pending' },
   acceptedAt: { type: Date },
-  resolvedAt: { type: Date }
+  resolvedAt: { type: Date },
+  actionImage: { type: String, default: null }
 }, { timestamps: true });
 
 export default mongoose.model("VolunteerTask", volunteerTaskSchema);

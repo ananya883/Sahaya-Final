@@ -4,9 +4,62 @@ import Notification from "../models/Notification.js";
 const router = express.Router();
 
 // -----------------------------
+// Get notifications for admin
+// -----------------------------
+router.get("/admin", async (req, res) => {
+  try {
+    const notifications = await Notification.find({
+      targetRole: "admin",
+    })
+      .populate({
+        path: 'relatedMissingPerson',
+        populate: { path: 'registeredBy', select: 'Name mobile email' }
+      })
+      .populate({
+        path: 'relatedUnknownPerson',
+        populate: { path: 'reportedBy', select: 'managerName contactNumber email campName' }
+      })
+      .populate('relatedMatch')
+      .sort({ createdAt: -1 });
+
+    res.json(notifications);
+  } catch (err) {
+    console.error("❌ Fetch admin notifications error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------
+// Get notifications for camp manager
+// -----------------------------
+router.get("/camp/:campId", async (req, res) => {
+  try {
+    const notifications = await Notification.find({
+      targetRole: "camp_manager",
+      targetCampId: req.params.campId,
+    })
+      .populate({
+        path: 'relatedMissingPerson',
+        populate: { path: 'registeredBy', select: 'Name mobile email' }
+      })
+      .populate({
+        path: 'relatedUnknownPerson',
+        populate: { path: 'reportedBy', select: 'managerName contactNumber email campName' }
+      })
+      .populate('relatedMatch')
+      .sort({ createdAt: -1 });
+
+    res.json(notifications);
+  } catch (err) {
+    console.error("❌ Fetch camp notifications error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------
 // Get notifications for a user
 // -----------------------------
-router.get("/:userId", async (req, res) => {
+router.get("/user/:userId", async (req, res) => {
   try {
     const notifications = await Notification.find({
       userId: req.params.userId,
@@ -17,7 +70,7 @@ router.get("/:userId", async (req, res) => {
       })
       .populate({
         path: 'relatedUnknownPerson',
-        populate: { path: 'reportedBy', select: 'Name mobile email' }
+        populate: { path: 'reportedBy', select: 'managerName contactNumber email campName' }
       })
       .populate('relatedMatch')
       .sort({ createdAt: -1 });

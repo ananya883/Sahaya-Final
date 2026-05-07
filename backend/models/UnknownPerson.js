@@ -21,7 +21,7 @@ const UnknownPersonSchema = new mongoose.Schema(
 
     reportedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "CampManager",
       required: true,
     },
 

@@ -10,7 +10,6 @@ import '../services/notification_service.dart';
 import 'register_missing_person.dart';
 import 'sos_page.dart';
 import 'first_aid_voice_page.dart';
-import 'unknown.dart';
 import 'early_warning.dart';
 import '../services/alert_service.dart';
 import '../widgets/top_alert_notification.dart';
@@ -99,7 +98,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // ===================== NOTIFICATIONS =====================
-  Future<void> _loadNotifications() async {
+  Future<void> _loadNotifications({bool repeat = false}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       String? userId = prefs.getString('userId');
@@ -115,6 +114,19 @@ class _HomePageState extends State<HomePage> {
         notifications = data;
         notificationLoading = false;
       });
+      
+      // If repeat is true, poll for 10 seconds to catch async background matches
+      if (repeat) {
+        for (int i = 0; i < 10; i++) {
+          await Future.delayed(const Duration(seconds: 1));
+          if (!mounted) return;
+          final newData = await NotificationService.fetchNotifications(userId);
+          if (newData.length > notifications.length) {
+            setState(() => notifications = newData);
+            break; // Stop polling if new notification found
+          }
+        }
+      }
     } catch (e) {
       debugPrint("Notification error: $e");
       setState(() => notificationLoading = false);
@@ -204,22 +216,14 @@ class _HomePageState extends State<HomePage> {
                   context,
                   MaterialPageRoute(
                       builder: (_) => const RegisterMissingPerson()),
-                );
+                ).then((value) {
+                  if (value == true) {
+                    _loadNotifications(repeat: true);
+                  }
+                });
               },
             ),
-            drawerItem(
-              context,
-              icon: Icons.person_add,
-              title: "Register Unknown Person",
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const RegisterUnknownPerson()),
-                );
-              },
-            ),
+
             const Spacer(),
             const Divider(),
             drawerItem(
@@ -240,20 +244,26 @@ class _HomePageState extends State<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 🔔 TOP MATCH NOTIFICATION
-              if (!notificationLoading && notifications.isNotEmpty)
-                TopMatchNotification(
-                  notificationId: notifications[0]["_id"]?.toString() ?? "0",
-                  personName:
-                  notifications[0]["relatedMissingPerson"]?["name"] ?? "Unknown",
-                  similarity: _parseSimilarity(
-                      notifications[0]["relatedMatch"]?["similarity"]),
-                  phone: _getContactNumber(notifications[0]),
-                  onDismiss: () {
-                    setState(() {
-                      notifications.removeAt(0);
-                    });
-                  },
-                ),
+              if (!notificationLoading)
+                ...notifications
+                    .where((n) =>
+                        n["type"] == "match" &&
+                        n["relatedMissingPerson"] != null &&
+                        n["relatedMatch"] != null)
+                    .take(1)
+                    .map((matchNotif) {
+                  return TopMatchNotification(
+                    notificationId: matchNotif["_id"]?.toString() ?? "0",
+                    personName: matchNotif["relatedMissingPerson"]?["name"] ?? "Unknown",
+                    similarity: _parseSimilarity(matchNotif["relatedMatch"]?["similarity"]),
+                    phone: _getContactNumber(matchNotif),
+                    onDismiss: () {
+                      setState(() {
+                        notifications.remove(matchNotif);
+                      });
+                    },
+                  );
+                }),
 
               if (showAlertBanner) ...[
                 const SizedBox(height: 10),

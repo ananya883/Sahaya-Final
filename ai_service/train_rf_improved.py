@@ -7,15 +7,8 @@ from sklearn.cluster import KMeans
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 import numpy as np
-
-# -----------------------------
-# STEP 1: Load dataset
-# -----------------------------
 df = pd.read_csv("final_dataset_with_alert.csv")
 
-# -----------------------------
-# STEP 2: Feature Engineering
-# -----------------------------
 
 # Rainfall change
 df["RAIN_DIFF"] = df.groupby("LOCATION")["Rainfall"].diff().fillna(0)
@@ -24,7 +17,7 @@ df["RAIN_DIFF"] = df.groupby("LOCATION")["Rainfall"].diff().fillna(0)
 df["HUM_RAIN"] = df["Humidity"] * df["Rainfall"]
 df["WIND_RAIN"] = df["Windspeed"] * df["Rainfall"]
 
-# Lagged features
+# Lagged featuresīīī
 df["RAIN_LAG"] = df.groupby("LOCATION")["Rainfall"].shift(1).fillna(0)
 df["HUM_LAG"] = df.groupby("LOCATION")["Humidity"].shift(1).fillna(0)
 
@@ -33,9 +26,7 @@ df["RAIN_AVG_3"] = df.groupby("LOCATION")["Rainfall"].transform(
     lambda x: x.rolling(window=3, min_periods=1).mean()
 )
 
-# ------------------------------ 
-# STEP 3: Select features
-# -----------------------------
+
 X = df[[
     "Rainfall",
     "Humidity",
@@ -48,14 +39,9 @@ X = df[[
     "HUM_LAG",
     "RAIN_AVG_3"
 ]]
-
-# Target (Now we use Self-Learned Labels via Clustering and Anomaly Detection)
-# -----------------------------
-# STEP 3.5: Self-Learn Labels (Unsupervised)
-# -----------------------------
 print("\n🧠 Self-Learning Phase: Discovering patterns without predefined labels...")
 
-# Scale features for clustering
+
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 

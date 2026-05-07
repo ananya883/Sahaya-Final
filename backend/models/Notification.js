@@ -5,7 +5,20 @@ const notificationSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
+      index: true,
+    },
+
+    targetRole: {
+      type: String,
+      enum: ["user", "camp_manager", "admin"],
+      default: "user",
+      index: true,
+    },
+
+    targetCampId: {
+      type: String,
+      required: false,
       index: true,
     },
 

@@ -1,11 +1,10 @@
-import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart';
+import 'package:image_picker/image_picker.dart';
 import 'api_config.dart';
 
 class UnknownPersonService {
   static final String baseUrl =
-      "${ApiConfig.baseUrl.replaceFirst(':5000', ':5001')}/api/unknown";
+      "${ApiConfig.baseUrl}/api/unknown";
 
   static Future<void> registerUnknownPerson({
     required String gender,
@@ -14,8 +13,8 @@ class UnknownPersonService {
     required String weight,
     required String foundLocation,
     required String foundDate,
-    required File image,
-    required String reportedBy,
+    required XFile image,
+    required String campId,
   }) async {
     final uri = Uri.parse("$baseUrl/upload");
 
@@ -28,21 +27,24 @@ class UnknownPersonService {
     request.fields["weight"] = weight;
     request.fields["foundLocation"] = foundLocation;
     request.fields["foundDate"] = foundDate;
-    request.fields["reportedBy"] = reportedBy;
+    request.fields["campId"] = campId;
 
-    // Image file
+    final bytes = await image.readAsBytes();
+    final fileName = image.name.isNotEmpty ? image.name : 'photo.jpg';
     request.files.add(
-      await http.MultipartFile.fromPath(
+      http.MultipartFile.fromBytes(
         "photo",
-        image.path,
-        filename: basename(image.path),
+        bytes,
+        filename: fileName,
       ),
     );
 
-    final response = await request.send();
-    final responseBody = await response.stream.bytesToString();
+    final response = await request.send().timeout(
+      const Duration(seconds: 20),
+    );
 
     if (response.statusCode != 201) {
+      final responseBody = await response.stream.bytesToString();
       throw Exception("Unknown person registration failed: $responseBody");
     }
   }

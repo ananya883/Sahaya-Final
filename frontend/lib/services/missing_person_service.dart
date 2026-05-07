@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'api_config.dart';
 
 class MissingPersonService {
   static final String baseUrl =
-      "${ApiConfig.baseUrl.replaceFirst(':5000', ':5001')}/api/missing";
+      "${ApiConfig.baseUrl}/api/missing";
 
   static Future<void> registerMissingPerson({
     required String name,
@@ -15,7 +15,7 @@ class MissingPersonService {
     required String birthmark,
     required String lastSeenLocation,
     required String lastSeenDate,
-    required File image,
+    required XFile image,
     required String registeredBy,
   }) async {
     final uri = Uri.parse("$baseUrl/register");
@@ -33,8 +33,10 @@ class MissingPersonService {
       "registeredBy": registeredBy,
     });
 
+    final bytes = await image.readAsBytes();
+    final fileName = image.name.isNotEmpty ? image.name : 'photo.jpg';
     request.files.add(
-      await http.MultipartFile.fromPath("photo", image.path),
+      http.MultipartFile.fromBytes("photo", bytes, filename: fileName),
     );
 
     final response = await request.send().timeout(
@@ -43,7 +45,10 @@ class MissingPersonService {
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       final body = await response.stream.bytesToString();
-      throw Exception(body);
+      throw Exception("Missing person registration failed: $body");
     }
+    
+    // Read response body for success (or discard if not needed)
+    await response.stream.bytesToString();
   }
 }

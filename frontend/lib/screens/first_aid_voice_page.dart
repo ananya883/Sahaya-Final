@@ -25,7 +25,7 @@ class _FirstAidVoicePageState extends State<FirstAidVoicePage> {
   final ScrollController _scrollController = ScrollController();
 
   // RASA Configuration
-  static const String _rasaUrl = "http://10.112.234.38:5005/webhooks/rest/webhook";
+  static const String _rasaUrl = "http://192.168.174.38:5005/webhooks/rest/webhook";
   // For real device: "http://192.168.1.100:5005/webhooks/rest/webhook"
   late String _senderId;
   @override

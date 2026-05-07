@@ -1,7 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/camp_session.dart';
 import '../services/unknown_person_service.dart';
 
 class RegisterUnknownPerson extends StatefulWidget {
@@ -21,7 +20,7 @@ class _RegisterUnknownPersonState extends State<RegisterUnknownPerson> {
   final foundLocationCtrl = TextEditingController();
 
   DateTime? foundDate;
-  File? image;
+  XFile? image;
   bool loading = false;
 
   final Color primaryBlue = Colors.blueAccent;
@@ -29,7 +28,7 @@ class _RegisterUnknownPersonState extends State<RegisterUnknownPerson> {
   Future<void> pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
-      setState(() => image = File(picked.path));
+      setState(() => image = picked);
     }
   }
 
@@ -55,39 +54,53 @@ class _RegisterUnknownPersonState extends State<RegisterUnknownPerson> {
       return;
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString("userId");
+    final campId = await CampSession.getCampId();
 
-    if (userId == null) {
+    if (campId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User not logged in")),
+        const SnackBar(content: Text("Camp Manager not logged in")),
       );
       return;
     }
 
     setState(() => loading = true);
 
-    await UnknownPersonService.registerUnknownPerson(
-      gender: genderCtrl.text,
-      age: ageCtrl.text,
-      height: heightCtrl.text,
-      weight: weightCtrl.text,
-      foundLocation: foundLocationCtrl.text,
-      foundDate: foundDate!.toIso8601String(),
-      image: image!,
-      reportedBy: userId,
-    );
+    try {
+      await UnknownPersonService.registerUnknownPerson(
+        gender: genderCtrl.text,
+        age: ageCtrl.text,
+        height: heightCtrl.text,
+        weight: weightCtrl.text,
+        foundLocation: foundLocationCtrl.text,
+        foundDate: foundDate!.toIso8601String(),
+        image: image!,
+        campId: campId,
+      );
 
-    setState(() => loading = false);
+      if (!mounted) return;
 
-    if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Unknown person registered successfully")),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Unknown person registered successfully")),
-    );
-
-    // Navigate back to homepage to see match notifications
-    Navigator.pop(context);
+      // Navigate back to homepage to see match notifications
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) Navigator.pop(context, true);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => loading = false);
+      }
+    }
   }
 
   @override

@@ -1,9 +1,17 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
 import User from '../models/users.js';
 import SOS from '../models/sos.js';
 import VolunteerTask from '../models/VolunteerTask.js';
 
 const router = express.Router();
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, "uploads/"),
+    filename: (req, file, cb) => cb(null, `${Date.now()}_action${path.extname(file.originalname)}`),
+});
+const upload = multer({ storage });
 
 // Get all SOS requests with their volunteer tasks
 router.get('/sos', async (req, res) => {
@@ -71,7 +79,7 @@ router.post('/sos/:id/accept', async (req, res) => {
 });
 
 // Resolve an SOS request
-router.post('/sos/:id/resolve', async (req, res) => {
+router.post('/sos/:id/resolve', upload.single('actionImage'), async (req, res) => {
     try {
         const sosId = req.params.id;
         const task = await VolunteerTask.findOne({ sosId, status: 'in progress' });
@@ -80,6 +88,11 @@ router.post('/sos/:id/resolve', async (req, res) => {
 
         task.status = 'resolved';
         task.resolvedAt = new Date();
+        
+        if (req.file) {
+            task.actionImage = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+        }
+        
         await task.save();
 
         res.json(task);

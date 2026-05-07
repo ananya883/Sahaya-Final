@@ -8,19 +8,12 @@ import requests
 from numpy.linalg import norm
 from pathlib import Path
 from dotenv import load_dotenv
-
-# Import RF Model Class
 try:
     from predict_rf_alert import RFDisasterAlertSystem
 except ImportError:
     RFDisasterAlertSystem = None
 
 app = Flask(__name__)
-
-# -----------------------------
-# Initialize Disaster ML System
-# -----------------------------
-# Find the .env file relative to this script's location (/backend/.env)
 base_dir = Path(__file__).resolve().parent.parent
 env_path = base_dir / "backend" / ".env"
 
