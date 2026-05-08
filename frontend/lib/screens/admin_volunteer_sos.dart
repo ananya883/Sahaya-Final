@@ -12,7 +12,7 @@ class AdminVolunteerSos extends StatefulWidget {
 class _AdminVolunteerSosState extends State<AdminVolunteerSos> {
   List<dynamic> _sosRequests = [];
   bool _isLoading = true;
-  int _selectedFilter = -1;
+  int _selectedFilter = -1; // -1: All, 0: Pending, 1: In Progress, 2: Resolved, 3: Expired
   String _searchQuery = '';
 
   @override
@@ -149,10 +149,12 @@ class _AdminVolunteerSosState extends State<AdminVolunteerSos> {
                         final status = s['status'] ?? 'pending';
                         bool matchesStatus = true;
                         
+                        final isExpired = s['isManualExpired'] == true || (s['isManualUnexpired'] != true && status == 'expired');
+
                         if (_selectedFilter == 0) matchesStatus = status == 'pending';
                         if (_selectedFilter == 1) matchesStatus = status == 'in progress';
                         if (_selectedFilter == 2) matchesStatus = status == 'resolved';
-                        if (_selectedFilter == 3) matchesStatus = status == 'expired';
+                        if (_selectedFilter == 3) matchesStatus = isExpired;
 
                         final volunteerName = (s['volunteer']?['Name'] ?? '').toString().toLowerCase();
                         final requesterName = (s['requestedBy']?['Name'] ?? '').toString().toLowerCase();
@@ -163,6 +165,12 @@ class _AdminVolunteerSosState extends State<AdminVolunteerSos> {
 
                         return matchesStatus && matchesSearch;
                       }).toList();
+
+                      filteredList.sort((a, b) {
+                        String tA = (a['timestamp'] ?? a['createdAt'] ?? '').toString();
+                        String tB = (b['timestamp'] ?? b['createdAt'] ?? '').toString();
+                        return tB.compareTo(tA);
+                      });
 
                       return filteredList.isEmpty
                           ? const Center(
@@ -360,10 +368,29 @@ class _AdminVolunteerSosState extends State<AdminVolunteerSos> {
     );
   }
 
-  String _formatTime(String isoString) {
+  String _formatDate(String isoString) {
+    if (isoString.isEmpty) return 'Unknown Date';
     try {
       final dt = DateTime.parse(isoString).toLocal();
-      return "${dt.day}/${dt.month}/${dt.year}  ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+      final now = DateTime.now();
+      if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+        return 'Today';
+      }
+      return "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}";
+    } catch (_) {
+      return 'Unknown Date';
+    }
+  }
+
+  String _formatTime(String isoString) {
+    if (isoString.isEmpty) return 'N/A';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      int hour = dt.hour;
+      String amPm = hour >= 12 ? 'PM' : 'AM';
+      if (hour > 12) hour -= 12;
+      if (hour == 0) hour = 12;
+      return "${hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} $amPm";
     } catch (_) {
       return isoString;
     }

@@ -25,7 +25,7 @@ class _FirstAidVoicePageState extends State<FirstAidVoicePage> {
   final ScrollController _scrollController = ScrollController();
 
   // RASA Configuration
-  static const String _rasaUrl = "http://192.168.174.38:5005/webhooks/rest/webhook";
+  static const String _rasaUrl = "http://192.168.174.138:5002/webhooks/rest/webhook";
   // For real device: "http://192.168.1.100:5005/webhooks/rest/webhook"
   late String _senderId;
   @override
@@ -89,7 +89,7 @@ class _FirstAidVoicePageState extends State<FirstAidVoicePage> {
   Future<void> _sendToRasa(String message) async {
     print("🔄 ====== START _sendToRasa ======");
     print("📱 Device: Physical Phone");
-    print("💻 PC IP: 192.168.1.5");
+    print("💻 PC IP: localhost");
     print("🔗 Rasa URL: $_rasaUrl");
     print("✉️ Message: '$message' (length: ${message.length})");
     print("👤 Sender ID: $_senderId");
@@ -188,7 +188,7 @@ class _FirstAidVoicePageState extends State<FirstAidVoicePage> {
 
       setState(() {
         _chatHistory.add({
-          'text': "🌐 Network Error: ${e.message}\n\nCheck:\n1. Rasa server running?\n2. Correct IP: 192.168.1.5\n3. Same WiFi network?",
+          'text': "🌐 Network Error: ${e.message}\n\nCheck:\n1. Rasa server running?\n2. Server URL: localhost:5002\n3. Running on emulator? (localhost works for emulator)",
           'isUser': false,
           'time': DateTime.now(),
         });

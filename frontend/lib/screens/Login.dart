@@ -100,8 +100,10 @@ class _LoginPageState extends State<LoginPage> {
       }
     } catch (e) {
       setState(() => _loading = false);
+      print("🔴 LOGIN ERROR: $e");
+      print("🔴 Error type: ${e.runtimeType}");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error connecting to server")),
+        SnackBar(content: Text("Error: $e")),
       );
     }
   }

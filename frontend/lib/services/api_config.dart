@@ -11,9 +11,9 @@ class ApiConfig {
   //
   // Current network IP: 10.6.2.93
 
-  static const String baseUrl = 'http://192.168.174.38:5000'; // Updated to current local IP
+  static const String baseUrl = 'http://192.168.174.138:5000'; // Updated to current local IP
   // static const String baseUrl = 'http://10.6.2.93:5000'; // For mobile testing
-  
+
   // New Endpoints
   static const String camps = '$baseUrl/api/camps/camps';
   static const String campRequests = '$baseUrl/api/camps/requests';
@@ -47,7 +47,9 @@ class ApiConfig {
   static String inmateById(String inmateId) => '$baseUrl/api/inmates/$inmateId';
 
   // Helper method to get donation not-receive endpoint
-  static String donationNotReceive(String donationId) => '$baseUrl/api/campmanager/donations/$donationId/not-receive';
+  static String donationNotReceive(String donationId) =>
+      '$baseUrl/api/campmanager/donations/$donationId/not-receive';
+
   // Volunteer Endpoints
   static const String volunteerUpgrade = '$baseUrl/api/volunteer/upgrade';
   static const String volunteerSos = '$baseUrl/api/volunteer/sos';
@@ -58,7 +60,8 @@ class ApiConfig {
   static String adminUnexpireSos(String id) => '$baseUrl/api/admin/sos/$id/unexpire';
 
   // Helper method for donor history
-  static String donorHistory(String donorId, String donorName) => '$baseUrl/api/donor/history/$donorId/${Uri.encodeComponent(donorName)}';
+  static String donorHistory(String donorId, String donorName) =>
+      '$baseUrl/api/donor/history/$donorId/${Uri.encodeComponent(donorName)}';
 
   // Helper methods for Admin detailed camp view
   static String inventoryByCamp(String campId) => '$baseUrl/api/inventory/$campId';

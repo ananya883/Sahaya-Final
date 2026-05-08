@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -5,7 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'login.dart';
+import 'Login.dart';
 import 'volunteer_profile.dart';
 import 'public_notices_page.dart';
 import '../services/api_service.dart';
@@ -295,9 +297,11 @@ class _VolunteerHomeState extends State<VolunteerHome> {
                         final filteredRequests = _sosRequests.where((sos) {
                           final status = sos['status'] ?? 'pending';
                           final isMyTask = sos['volunteer'] != null && sos['volunteer']['_id'] == _volunteerId;
+                          final isExpired = sos['isManualExpired'] == true || (sos['isManualUnexpired'] != true && status == 'expired');
+                          
                           if (_selectedTab == 0) return status == 'pending';
                           if (_selectedTab == 1) return isMyTask && status == 'in progress';
-                          if (_selectedTab == 2) return status == 'expired';
+                          if (_selectedTab == 2) return isExpired;
                           return true;
                         }).toList();
 
@@ -314,182 +318,219 @@ class _VolunteerHomeState extends State<VolunteerHome> {
                           );
                         }
 
-                        return ListView.builder(
-                            padding: const EdgeInsets.all(12),
-                            itemCount: filteredRequests.length,
-                            itemBuilder: (context, index) {
-                              final sos      = filteredRequests[index];
-                              final status   = sos['status'] ?? 'pending';
-                              final isMyTask = sos['volunteer'] != null && sos['volunteer']['_id'] == _volunteerId;
-                              final hasLocation = sos['latitude'] != null && sos['longitude'] != null;
+                        // Sort descending by timestamp
+                        filteredRequests.sort((a, b) {
+                          String tA = (a['timestamp'] ?? a['createdAt'] ?? '').toString();
+                          String tB = (b['timestamp'] ?? b['createdAt'] ?? '').toString();
+                          return tB.compareTo(tA);
+                        });
 
-                              final requester       = sos['requestedBy'];
-                              final requesterName   = requester != null ? (requester['Name'] ?? 'Unknown User') : 'Unknown User';
-                              final requesterMobile = requester != null ? (requester['mobile'] ?? '') : '';
+                        // Group by date
+                        final Map<String, List<dynamic>> groupedTasks = {};
+                        for (var sos in filteredRequests) {
+                          String ts = (sos['timestamp'] ?? sos['createdAt'])?.toString() ?? '';
+                          String dateStr = _formatDate(ts);
+                          groupedTasks.putIfAbsent(dateStr, () => []).add(sos);
+                        }
 
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 2,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  onTap: hasLocation ? () => _openSosMap(sos) : null,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(14),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        // Header row
-                                        Row(
-                                          children: [
-                                            Icon(_statusIcon(status), color: _statusColor(status), size: 22),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                "${sos['emergency_type'] ?? 'Emergency'}"
-                                                "${(sos['disaster_type'] ?? '').toString().isNotEmpty ? '  •  ${sos['disaster_type']}' : ''}",
-                                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                              ),
-                                            ),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: _statusColor(status).withOpacity(0.12),
-                                                border: Border.all(color: _statusColor(status)),
-                                                borderRadius: BorderRadius.circular(20),
-                                              ),
-                                              child: Text(status.toUpperCase(),
-                                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _statusColor(status))),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 10),
+                        return ListView(
+                          padding: const EdgeInsets.all(12),
+                          children: groupedTasks.entries.expand((entry) {
+                            return [
+                              // Date Header
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4, top: 12, bottom: 8),
+                                child: Text(
+                                  entry.key,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade800,
+                                  ),
+                                ),
+                              ),
+                              // SOS Cards for this date
+                              ...entry.value.map((sos) {
+                                final status   = sos['status'] ?? 'pending';
+                                final isMyTask = sos['volunteer'] != null && sos['volunteer']['_id'] == _volunteerId;
+                                final hasLocation = sos['latitude'] != null && sos['longitude'] != null;
 
-                                        // Requester
-                                        Row(children: [
-                                          const Icon(Icons.person, size: 15, color: Colors.grey),
-                                          const SizedBox(width: 5),
-                                          Text("Requested by: $requesterName", style: const TextStyle(fontSize: 13)),
-                                        ]),
-                                        if (requesterMobile.toString().isNotEmpty) ...[
-                                          const SizedBox(height: 3),
-                                          Row(children: [
-                                            const Icon(Icons.phone, size: 15, color: Colors.grey),
-                                            const SizedBox(width: 5),
-                                            Text(requesterMobile.toString(), style: const TextStyle(fontSize: 13)),
-                                          ]),
-                                        ],
+                                final requester       = sos['requestedBy'];
+                                final requesterName   = requester != null ? (requester['Name'] ?? 'Unknown User') : 'Unknown User';
+                                final requesterMobile = requester != null ? (requester['mobile'] ?? '') : '';
+                                final timeStr         = _formatTime((sos['timestamp'] ?? sos['createdAt'])?.toString() ?? '');
 
-                                        // Location + map hint
-                                        if (hasLocation) ...[
-                                          const SizedBox(height: 3),
-                                          Row(children: [
-                                            const Icon(Icons.location_on, size: 15, color: Colors.grey),
-                                            const SizedBox(width: 5),
-                                            Text("Lat: ${sos['latitude']}, Lng: ${sos['longitude']}", style: const TextStyle(fontSize: 13)),
-                                          ]),
-
-                                          // Mini map preview
-                                          const SizedBox(height: 10),
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(10),
-                                            child: SizedBox(
-                                              height: 150,
-                                              width: double.infinity,
-                                              child: IgnorePointer(
-                                                child: FlutterMap(
-                                                  options: MapOptions(
-                                                    initialCenter: LatLng(
-                                                      (sos['latitude'] is int ? (sos['latitude'] as int).toDouble() : sos['latitude'] as double),
-                                                      (sos['longitude'] is int ? (sos['longitude'] as int).toDouble() : sos['longitude'] as double),
-                                                    ),
-                                                    initialZoom: 15,
-                                                  ),
-                                                  children: [
-                                                    TileLayer(
-                                                      urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                                                      subdomains: const ['a', 'b', 'c'],
-                                                    ),
-                                                    MarkerLayer(
-                                                      markers: [
-                                                        Marker(
-                                                          point: LatLng(
-                                                            (sos['latitude'] is int ? (sos['latitude'] as int).toDouble() : sos['latitude'] as double),
-                                                            (sos['longitude'] is int ? (sos['longitude'] as int).toDouble() : sos['longitude'] as double),
-                                                          ),
-                                                          width: 40, height: 40,
-                                                          child: const Icon(Icons.location_on, color: Colors.red, size: 36),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-
-                                          // Navigate & View Map buttons
-                                          const SizedBox(height: 8),
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 2,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: hasLocation ? () => _openSosMap(sos) : null,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(14),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Header row
                                           Row(
                                             children: [
-                                              Expanded(
-                                                child: OutlinedButton.icon(
-                                                  onPressed: () => _openSosMap(sos),
-                                                  icon: const Icon(Icons.map, size: 16),
-                                                  label: const Text("View Map", style: TextStyle(fontSize: 12)),
-                                                  style: OutlinedButton.styleFrom(
-                                                    foregroundColor: Colors.blue.shade700,
-                                                    side: BorderSide(color: Colors.blue.shade300),
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                                  ),
-                                                ),
-                                              ),
+                                              Icon(_statusIcon(status), color: _statusColor(status), size: 22),
                                               const SizedBox(width: 8),
                                               Expanded(
-                                                child: OutlinedButton.icon(
-                                                  onPressed: () => _openInGoogleMaps(
-                                                    (sos['latitude'] is int ? (sos['latitude'] as int).toDouble() : sos['latitude'] as double),
-                                                    (sos['longitude'] is int ? (sos['longitude'] as int).toDouble() : sos['longitude'] as double),
-                                                  ),
-                                                  icon: const Icon(Icons.navigation, size: 16),
-                                                  label: const Text("Navigate", style: TextStyle(fontSize: 12)),
-                                                  style: OutlinedButton.styleFrom(
-                                                    foregroundColor: Colors.green.shade700,
-                                                    side: BorderSide(color: Colors.green.shade300),
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                                  ),
+                                                child: Text(
+                                                  "${sos['emergency_type'] ?? 'Emergency'}"
+                                                  "${(sos['disaster_type'] ?? '').toString().isNotEmpty ? '  •  ${sos['disaster_type']}' : ''}",
+                                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                                 ),
+                                              ),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: _statusColor(status).withOpacity(0.12),
+                                                  border: Border.all(color: _statusColor(status)),
+                                                  borderRadius: BorderRadius.circular(20),
+                                                ),
+                                                child: Text(status.toUpperCase(),
+                                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _statusColor(status))),
                                               ),
                                             ],
                                           ),
-                                        ],
+                                          const SizedBox(height: 10),
 
-                                        // Assigned volunteer
-                                        if (sos['volunteer'] != null) ...[
-                                          const SizedBox(height: 5),
+                                          // Requester
                                           Row(children: [
-                                            const Icon(Icons.volunteer_activism, size: 15, color: Colors.green),
+                                            const Icon(Icons.person, size: 15, color: Colors.grey),
                                             const SizedBox(width: 5),
-                                            Text("Accepted by: ${sos['volunteer']['Name']}",
-                                                style: const TextStyle(fontSize: 13, color: Colors.green)),
+                                            Text("Requested by: $requesterName", style: const TextStyle(fontSize: 13)),
                                           ]),
-                                        ],
+                                          if (requesterMobile.toString().isNotEmpty) ...[
+                                            const SizedBox(height: 3),
+                                            Row(children: [
+                                              const Icon(Icons.phone, size: 15, color: Colors.grey),
+                                              const SizedBox(width: 5),
+                                              Text(requesterMobile.toString(), style: const TextStyle(fontSize: 13)),
+                                            ]),
+                                          ],
+                                          const SizedBox(height: 3),
+                                          Row(children: [
+                                            const Icon(Icons.access_time, size: 15, color: Colors.grey),
+                                            const SizedBox(width: 5),
+                                            Text("Time: $timeStr", style: const TextStyle(fontSize: 13)),
+                                          ]),
 
-                                        // Action buttons
-                                        if (status == 'pending' || (status == 'in progress' && isMyTask)) ...[
-                                          const SizedBox(height: 12),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.end,
-                                            children: [_buildActionButton(sos['_id'], status, isMyTask)],
-                                          ),
+                                          // Location + map hint
+                                          if (hasLocation) ...[
+                                            const SizedBox(height: 3),
+                                            Row(children: [
+                                              const Icon(Icons.location_on, size: 15, color: Colors.grey),
+                                              const SizedBox(width: 5),
+                                              Text("Lat: ${sos['latitude']}, Lng: ${sos['longitude']}", style: const TextStyle(fontSize: 13)),
+                                            ]),
+
+                                            // Mini map preview
+                                            const SizedBox(height: 10),
+                                            ClipRRect(
+                                              borderRadius: BorderRadius.circular(10),
+                                              child: SizedBox(
+                                                height: 150,
+                                                width: double.infinity,
+                                                child: IgnorePointer(
+                                                  child: FlutterMap(
+                                                    options: MapOptions(
+                                                      initialCenter: LatLng(
+                                                        (sos['latitude'] is int ? (sos['latitude'] as int).toDouble() : sos['latitude'] as double),
+                                                        (sos['longitude'] is int ? (sos['longitude'] as int).toDouble() : sos['longitude'] as double),
+                                                      ),
+                                                      initialZoom: 15,
+                                                    ),
+                                                    children: [
+                                                      TileLayer(
+                                                        urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                                                        userAgentPackageName: 'com.sahaya.app',
+                                                      ),
+                                                      MarkerLayer(
+                                                        markers: [
+                                                          Marker(
+                                                            point: LatLng(
+                                                              (sos['latitude'] is int ? (sos['latitude'] as int).toDouble() : sos['latitude'] as double),
+                                                              (sos['longitude'] is int ? (sos['longitude'] as int).toDouble() : sos['longitude'] as double),
+                                                            ),
+                                                            width: 40, height: 40,
+                                                            child: const Icon(Icons.location_on, color: Colors.red, size: 36),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+
+                                            // Navigate & View Map buttons
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: OutlinedButton.icon(
+                                                    onPressed: () => _openSosMap(sos),
+                                                    icon: const Icon(Icons.map, size: 16),
+                                                    label: const Text("View Map", style: TextStyle(fontSize: 12)),
+                                                    style: OutlinedButton.styleFrom(
+                                                      foregroundColor: Colors.blue.shade700,
+                                                      side: BorderSide(color: Colors.blue.shade300),
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: OutlinedButton.icon(
+                                                    onPressed: () => _openInGoogleMaps(
+                                                      (sos['latitude'] is int ? (sos['latitude'] as int).toDouble() : sos['latitude'] as double),
+                                                      (sos['longitude'] is int ? (sos['longitude'] as int).toDouble() : sos['longitude'] as double),
+                                                    ),
+                                                    icon: const Icon(Icons.navigation, size: 16),
+                                                    label: const Text("Navigate", style: TextStyle(fontSize: 12)),
+                                                    style: OutlinedButton.styleFrom(
+                                                      foregroundColor: Colors.green.shade700,
+                                                      side: BorderSide(color: Colors.green.shade300),
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+
+                                          // Assigned volunteer
+                                          if (sos['volunteer'] != null) ...[
+                                            const SizedBox(height: 5),
+                                            Row(children: [
+                                              const Icon(Icons.volunteer_activism, size: 15, color: Colors.green),
+                                              const SizedBox(width: 5),
+                                              Text("Accepted by: ${sos['volunteer']['Name']}",
+                                                  style: const TextStyle(fontSize: 13, color: Colors.green)),
+                                            ]),
+                                          ],
+
+                                          // Action buttons
+                                          if (status == 'pending' || (status == 'in progress' && isMyTask)) ...[
+                                            const SizedBox(height: 12),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.end,
+                                              children: [_buildActionButton(sos['_id'], status, isMyTask)],
+                                            ),
+                                          ],
                                         ],
-                                      ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              );
-                            },
-                          );
+                                );
+                              }).toList(),
+                            ];
+                          }).toList(),
+                        );
                       },
                     ),
                   ),
@@ -522,6 +563,34 @@ class _VolunteerHomeState extends State<VolunteerHome> {
       );
     }
     return const SizedBox();
+  }
+
+  String _formatDate(String isoString) {
+    if (isoString.isEmpty) return 'Unknown Date';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final now = DateTime.now();
+      if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+        return 'Today';
+      }
+      return "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}";
+    } catch (_) {
+      return 'Unknown Date';
+    }
+  }
+
+  String _formatTime(String isoString) {
+    if (isoString.isEmpty) return 'N/A';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      int hour = dt.hour;
+      String amPm = hour >= 12 ? 'PM' : 'AM';
+      if (hour > 12) hour -= 12;
+      if (hour == 0) hour = 12;
+      return "${hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} $amPm";
+    } catch (_) {
+      return 'N/A';
+    }
   }
 }
 
@@ -574,8 +643,8 @@ class _SosMapScreen extends StatelessWidget {
             ),
             children: [
               TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: const ['a', 'b', 'c'],
+                urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                userAgentPackageName: 'com.sahaya.app',
               ),
               MarkerLayer(
                 markers: [

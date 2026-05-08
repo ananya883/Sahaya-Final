@@ -5,68 +5,23 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5c1ee716-bff3-46ad-a405-144179a2b796" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/test_api.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/test_resolve.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/lib/screens/admin_camp_details.dart" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tmp_sos.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tmp_sos2.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tmp_sos3.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ai_service/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai_service/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ai_service/train_rf_improved.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai_service/train_rf_improved.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/models/Notification.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/models/Notification.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/models/UnknownPerson.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/models/UnknownPerson.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/models/VolunteerTask.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/models/VolunteerTask.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/alertRoutes.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/alertRoutes.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/missingPersonRoutes.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/missingPersonRoutes.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/notification.routes.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/notification.routes.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/unknown.routes.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/unknown.routes.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/volunteerRoutes.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/volunteerRoutes.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/1771269650632-1000173035.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/1771270010088-1000173084.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/1771270281820-1000173084.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/1771270281874-1000173084.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/1771307081330-1000173164.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/1774191899530-345292365.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/missing/1769620094624-1000167719.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/missing/1769625401662-1000168465.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/missing/1770109497575-1000168133.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/missing/1770123969972-1000381328.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/missing/1770124283632-1000381328.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/missing/1770199634320-1000381334.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/missing/1770200010954-1000381686.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/missing/1770200136755-1000381685.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/unknown/1769620280451-1000167719.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/unknown/1769621271030-1000168465.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/unknown/1769625476054-1000168465.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/unknown/1770109537549-1000168133.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/unknown/1770124350900-1000381334.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/unknown/1770199824935-1000381334.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/unknown/1770200034790-1000381687.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/uploads/unknown/1770200158135-1000381687.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/android/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/ios/Runner/Info.plist" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/ios/Runner/Info.plist" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/admin_dashboard.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/admin_dashboard.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/Login.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/Login.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/lib/screens/admin_volunteer_sos.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/admin_volunteer_sos.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/camp_dashboard.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/camp_dashboard.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/lib/screens/first_aid_voice_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/first_aid_voice_page.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/homepage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/homepage.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/register_missing_person.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/register_missing_person.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/unknown.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/unknown.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/lib/screens/volunteer_home.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/volunteer_home.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/lib/services/api_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/services/api_config.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/services/api_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/services/api_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/services/missing_person_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/services/missing_person_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/services/notification_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/services/notification_service.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/lib/services/rasa_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/services/rasa_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/services/unknown_person_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/services/unknown_person_service.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/linux/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/linux/flutter/generated_plugin_registrant.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/linux/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/linux/flutter/generated_plugin_registrant.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/linux/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/linux/flutter/generated_plugins.cmake" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/macos/Flutter/GeneratedPluginRegistrant.swift" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/pubspec.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/windows/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/windows/flutter/generated_plugin_registrant.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/windows/flutter/generated_plugins.cmake" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -91,6 +46,7 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
@@ -98,8 +54,9 @@
     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;Merging main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/ASUS/Sahaya-Final&quot;,
     &quot;show.migrate.to.gradle.popup&quot;: &quot;false&quot;
   }
 }</component>
